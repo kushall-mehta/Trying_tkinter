@@ -69,9 +69,13 @@ root.config(menu=menu_bar)
 file_menu = tk.Menu(menu_bar)
 menu_bar.add_cascade(label="File", menu=file_menu)
 
-file_menu.add_command(label="New", command=lambda: create_file())
-file_menu.add_command(label="Open", command=open_file)
-file_menu.add_command(label="Save", command=save_file)
+file_menu.add_command(label="New", command=lambda: create_file(),accelerator="Ctrl+N")
+file_menu.add_command(label="Open", command=open_file, accelerator="Ctrl+O")
+file_menu.add_command(label="Save", command=save_file , accelerator="Ctrl+S")
+
+root.bind("<Control-n>", lambda e: create_file())
+root.bind("<Control-o>", lambda e: open_file())
+root.bind("<Control-s>", lambda e: save_file())
 
 create_file()
 
