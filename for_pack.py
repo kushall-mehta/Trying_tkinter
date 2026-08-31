@@ -1,6 +1,6 @@
 import os
 import tkinter as tk
-from tkinter import filedialog, ttk
+from tkinter import filedialog, messagebox, ttk
 
 
 root = tk.Tk()
@@ -53,24 +53,29 @@ def create_file(content="", title="Untitled"):
     notebook.select(text_area)
 
     text_contents[str(text_area)] = hash(content)
+    text_area.bind("<KeyRelease>", lambda event: update_tab_title())
     return text_area
 
 
 def save_file():
-    file_path = filedialog.asksaveasfilename(
-        defaultextension=".txt",
-        filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
-    )
-    if not file_path:
-        return
-
     selected_tab = notebook.select()
     if not selected_tab:
         return
 
     text_widget = notebook.nametowidget(selected_tab)
-    content = text_widget.get("1.0", "end-1c")
+    current_name = notebook.tab(selected_tab, "text")
+    file_path = text_widget.file_path if hasattr(text_widget, "file_path") else None
 
+    if not file_path:
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".txt",
+            filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+        )
+        if not file_path:
+            return
+        text_widget.file_path = file_path
+
+    content = text_widget.get("1.0", "end-1c")
     with open(file_path, "w", encoding="utf-8") as file:
         file.write(content)
 
@@ -94,7 +99,41 @@ def open_file():
         return
 
     filename = os.path.basename(file_path)
-    create_file(content, filename)
+    text_area = create_file(content, filename)
+    text_area.file_path = file_path
+
+
+def confirm_close():
+    if notebook.index("end") == 0:
+        return True
+
+    current_tab = notebook.select()
+    if not current_tab:
+        return True
+
+    text_widget = notebook.nametowidget(current_tab)
+    current_content = text_widget.get("1.0", "end-1c")
+    saved_hash = text_contents.get(str(text_widget))
+
+    if saved_hash is not None and hash(current_content) == saved_hash:
+        return True
+
+    answer = messagebox.askyesnocancel(
+        "Save changes?",
+        "Do you want to save changes before closing?"
+    )
+
+    if answer is None:
+        return False
+    if answer:
+        save_file()
+        return True
+    return True
+
+
+def on_close():
+    if confirm_close():
+        root.destroy()
 
 
 menu_bar = tk.Menu(root)
@@ -110,8 +149,8 @@ file_menu.add_command(label="Save", command=save_file, accelerator="Ctrl+S")
 root.bind("<Control-n>", lambda e: create_file())
 root.bind("<Control-o>", lambda e: open_file())
 root.bind("<Control-s>", lambda e: save_file())
+root.protocol("WM_DELETE_WINDOW", on_close)
 
-text_area = create_file()
-text_area.bind("<KeyRelease>", lambda event: update_tab_title())
+create_file()
 
 root.mainloop()
